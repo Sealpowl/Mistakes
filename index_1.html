@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>错题统计</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#FAF7F0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="错题统计">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" href="icon-180.png">
+<style>
+:root{--bg:#FAF7F0;--card:#fff;--ink:#2B2926;--mute:#8A857C;--line:#E8E3D8;--acc:#D97757;--accSoft:#F6E3D9;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px)}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 -apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;display:flex;flex-direction:column;max-width:560px;margin:0 auto;-webkit-user-select:none;user-select:none}
+header{display:flex;align-items:center;gap:8px;padding:12px 16px 4px}
+header select{flex:1;font:inherit;font-size:18px;font-weight:600;border:0;background:transparent;color:var(--ink);appearance:none;-webkit-appearance:none;padding:4px 0}
+.ic{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.iconbtn{border:0;background:transparent;color:var(--acc);padding:6px;display:flex}
+main{flex:1;overflow-y:auto;padding:8px 16px 24px}
+nav{display:flex;border-top:1px solid var(--line);background:var(--bg);padding-bottom:env(safe-area-inset-bottom,0px)}
+nav button{flex:1;border:0;background:transparent;padding:10px 0 8px;color:var(--mute);font:inherit;font-size:12px;display:flex;flex-direction:column;align-items:center;gap:2px}
+nav button.on{color:var(--ink)}nav button.on .ic{color:var(--acc)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:4px 0 8px;scrollbar-width:none}
+.chip{flex:none;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 13px;font:inherit;font-size:13px}
+.chip.on{background:var(--acc);border-color:var(--acc);color:#fff}
+.chip.soft{background:var(--accSoft);border-color:var(--accSoft)}
+.btn{border:0;background:var(--acc);color:#fff;border-radius:12px;padding:12px;font:inherit;font-weight:600;width:100%}
+.btn.ghost{background:var(--card);color:var(--ink);border:1px solid var(--line);font-weight:400}
+input[type=text],input[type=date],select.f{width:100%;font:inherit;border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--card);color:var(--ink);-webkit-user-select:text;user-select:text}
+input:focus{outline:2px solid var(--accSoft);border-color:var(--acc)}
+h4{margin:14px 0 6px;font-size:13px;font-weight:600;color:var(--mute)}
+.crumb{font-size:13px;color:var(--mute);min-height:22px}.crumb b{color:var(--ink);font-weight:600}
+.row{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}
+.row:first-child{border-top:0}
+.row .nm{flex:0 0 30%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.bar{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden}.bar i{display:block;height:100%;background:var(--acc);border-radius:4px}
+.row .ct{flex:0 0 64px;text-align:right;font-size:13px;color:var(--mute)}
+.fade{opacity:.45}.tag{font-size:11px;color:var(--mute);border:1px solid var(--line);border-radius:6px;padding:0 5px;margin-left:6px}
+.hint{color:var(--mute);font-size:13px;text-align:center;padding:6px}
+#sheet{position:fixed;inset:0;background:rgba(43,41,38,.28);display:none;align-items:flex-end;z-index:9}
+#sheet.show{display:flex}
+#sheet>div{background:var(--bg);width:100%;max-width:560px;margin:0 auto;border-radius:18px 18px 0 0;padding:18px 16px calc(18px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:10px}
+#toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:8px 16px;border-radius:999px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:10}
+#toast.show{opacity:1}
+svg text{fill:var(--ink);font-size:12px}
+svg .lb{cursor:pointer}
+.sw{display:flex;justify-content:space-between;align-items:center}
+</style>
+</head>
+<body>
+<header>
+  <select id="dom" aria-label="领域"></select>
+  <button class="iconbtn" id="gear" aria-label="设置"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></button>
+</header>
+<main id="app"></main>
+<nav id="nav">
+  <button data-v="stats"><svg class="ic" viewBox="0 0 24 24"><path d="M12 3l8 6-3 10H7L4 9z"/></svg>统计</button>
+  <button data-v="add"><svg class="ic" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>录入</button>
+  <button data-v="nodes"><svg class="ic" viewBox="0 0 24 24"><path d="M5 6h14M9 12h10M13 18h6"/></svg>知识点</button>
+</nav>
+<div id="sheet"><div id="sbody"></div></div>
+<div id="toast"></div>
+<script>
+const $=s=>document.querySelector(s),uid=()=>Math.random().toString(36).slice(2,8);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+function seed(){
+  const nodes=[],id={};
+  const t=(n,p)=>{const o={id:uid(),name:n,parent:p?id[p]:null};id[n]=o.id;nodes.push(o)};
+  ['函数','几何','数列','概率统计','导数','不等式'].forEach(n=>t(n));
+  [['二次函数','函数'],['指数对数','函数'],['三角函数','函数'],['立体几何','几何'],['解析几何','几何']].forEach(a=>t(a[0],a[1]));
+  const leaf=['二次函数','二次函数','指数对数','三角函数','立体几何','解析几何','数列','数列','概率统计','导数','导数','导数','不等式'];
+  const rs=['计算失误','概念不清','审题不仔细','思路卡住'],src=['日常','日常','专项','模考'],recs=[];
+  for(let i=0;i<30;i++){
+    const d=new Date(Date.now()-((i*53)%60)*864e5).toISOString().slice(0,10);
+    const ns=[id[leaf[(i*7)%leaf.length]]];if(i%6===0)ns.push(id[leaf[(i*3+2)%leaf.length]]);
+    recs.push({id:uid(),date:d,nodes:[...new Set(ns)],reason:rs[(i*5)%4],source:src[(i*3)%4]});
+  }
+  return {showM:false,lastExport:null,cur:0,doms:[{id:uid(),name:'高中数学',nodes,reasons:rs,sources:['日常','专项','模考'],records:recs}]};
+}
+let S;try{S=JSON.parse(localStorage.getItem('wt1'))}catch(e){}if(!S||!S.doms)S=seed();
+const save=()=>{try{localStorage.setItem('wt1',JSON.stringify(S))}catch(e){}};
+const D=()=>S.doms[S.cur];
+let view='stats',drill=null,range='all',srcF='all',sel=[],reason=null,srcSel=null,q='',date=today();
+const kids=(d,id)=>d.nodes.filter(n=>n.parent===id);
+function sub(d,id){const s=new Set([id]);let ch=true;while(ch){ch=false;d.nodes.forEach(n=>{if(n.parent&&s.has(n.parent)&&!s.has(n.id)){s.add(n.id);ch=true}})}return s}
+const path=(d,id)=>{const o=[];let n=d.nodes.find(x=>x.id===id);while(n){o.unshift(n.name);n=d.nodes.find(x=>x.id===n.parent)}return o.join(' / ')};
+let undoFn=null;
+function toast(m,u){const t=$('#toast');t.textContent=m;undoFn=u||null;if(u){const b=document.createElement('span');b.id='undo';b.textContent='　撤销';b.style.cssText='color:#F2B79F;font-weight:600';t.appendChild(b)}t.style.pointerEvents=u?'auto':'none';t.classList.add('show');clearTimeout(toast.h);toast.h=setTimeout(()=>t.classList.remove('show'),u?5000:1800)}
+function sheet(h){$('#sbody').innerHTML=h;$('#sheet').classList.add('show')}
+const closeSheet=()=>$('#sheet').classList.remove('show');
+
+function head(){
+  $('#dom').innerHTML=S.doms.map((x,i)=>`<option value="${i}" ${i===S.cur?'selected':''}>${esc(x.name)}</option>`).join('')+'<option value="new">＋ 新领域</option>';
+  document.querySelectorAll('nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===view));
+}
+function filtered(d){
+  const lim=range==='30'?Date.now()-30*864e5:0;
+  return d.records.filter(r=>(!lim||new Date(r.date)>=lim)&&(srcF==='all'||r.source===srcF));
+}
+function stats(){
+  const d=D(),recs=filtered(d),total=recs.length;
+  const axes=kids(d,drill).filter(n=>!n.archived&&(S.showM||!n.mastered)).map(n=>{const s=sub(d,n.id);return {n,c:recs.filter(r=>r.nodes.some(x=>s.has(x))).length,has:kids(d,n.id).length>0}});
+  const max=Math.max(1,...axes.map(a=>a.c)),N=axes.length,cx=170,cy=150,R=86;
+  const P=(i,k)=>{const a=-Math.PI/2+2*Math.PI*i/N;return [cx+R*k*Math.cos(a),cy+R*k*Math.sin(a),Math.cos(a)]};
+  let svg='';
+  if(N>=3){
+    [.25,.5,.75,1].forEach(k=>{svg+=`<polygon points="${axes.map((_,i)=>P(i,k).slice(0,2).join(',')).join(' ')}" fill="none" stroke="#E8E3D8"/>`});
+    axes.forEach((_,i)=>{const p=P(i,1);svg+=`<line x1="${cx}" y1="${cy}" x2="${p[0]}" y2="${p[1]}" stroke="#E8E3D8"/>`});
+    svg+=`<polygon points="${axes.map((a,i)=>P(i,a.c/max).slice(0,2).join(',')).join(' ')}" fill="#D97757" fill-opacity=".22" stroke="#D97757" stroke-width="2" stroke-linejoin="round"/>`;
+    axes.forEach((a,i)=>{const v=P(i,a.c/max);svg+=`<circle cx="${v[0]}" cy="${v[1]}" r="3" fill="#D97757"/>`;
+      const l=P(i,1.17),an=l[2]>.3?'start':l[2]<-.3?'end':'middle',nm=a.n.name.length>6?a.n.name.slice(0,6)+'…':a.n.name;
+      svg+=`<text class="lb" data-d="${a.has?a.n.id:''}" x="${l[0]}" y="${l[1]+4}" text-anchor="${an}">${esc(nm)}${a.has?' ›':''}</text>`});
+  }
+  const cr=drill?`<span data-d="">全部</span> › <b>${esc(path(d,drill))}</b>`:'<b>全部知识点</b>';
+  const par=drill&&d.nodes.find(n=>n.id===drill).parent;
+  $('#app').innerHTML=`
+  <div class="chips">${[['all','全部时间'],['30','近 30 天']].map(a=>`<button class="chip ${range===a[0]?'on':''}" data-r="${a[0]}">${a[1]}</button>`).join('')}</div>
+  <div class="chips">${[['all','全部来源'],...d.sources.map(s=>[s,s])].map(a=>`<button class="chip ${srcF===a[0]?'on':''}" data-s="${a[0]}">${esc(a[1])}</button>`).join('')}</div>
+  <div class="card">
+    <div class="crumb" id="crumb" data-up="${par||''}">${drill?'‹ ':''}${cr}　<span style="float:right">${total} 道错题</span></div>
+    ${N>=3?`<svg viewBox="0 0 340 300" width="100%">${svg}</svg>`:`<div class="hint" style="padding:40px 0">这一层不足 3 个知识点，雷达图需要至少 3 个轴</div>`}
+  </div>
+  <div class="card">${axes.length?axes.sort((a,b)=>b.c-a.c).map(a=>`<div class="row" data-d="${a.has?a.n.id:''}"><span class="nm">${esc(a.n.name)}${a.has?' ›':''}</span><span class="bar"><i style="width:${a.c/max*100}%"></i></span><span class="ct">${a.c} 次 · ${total?Math.round(a.c/total*100):0}%</span></div>`).join(''):'<div class="hint">还没有知识点</div>'}</div>`;
+}
+function add(){
+  const d=D(),recent=[...new Set(d.records.slice().reverse().flatMap(r=>r.nodes))].slice(0,6);
+  const fz=(s,k)=>{s=s.toLowerCase();let i=0;for(const c of k.toLowerCase()){i=s.indexOf(c,i);if(i<0)return false;i++}return true};
+  const cand=(q?d.nodes.filter(n=>fz(path(d,n.id),q)):recent.map(i=>d.nodes.find(n=>n.id===i)).filter(Boolean)).filter(n=>!sel.includes(n.id)).slice(0,8);
+  $('#app').innerHTML=`
+  <h4>知识点（可多选）</h4>
+  <div class="card">
+    <div class="chips" style="flex-wrap:wrap;overflow:visible">${sel.map(i=>`<button class="chip on" data-x="${i}">${esc(d.nodes.find(n=>n.id===i).name)} ✕</button>`).join('')||'<span class="hint" style="padding:4px 0">还没选</span>'}</div>
+    <input type="text" id="q" placeholder="输入关键词，点选确认" value="${esc(q)}" autocomplete="off">
+    <div class="chips" style="flex-wrap:wrap;overflow:visible;padding-top:10px">${cand.map(n=>`<button class="chip soft" data-p="${n.id}">${esc(path(d,n.id))}${n.archived?'（已归档）':''}</button>`).join('')||(q?'<span class="hint">没有匹配项</span>':'')}</div>
+    ${q?'':'<div class="hint">最近用过的</div>'}
+  </div>
+  <h4>错误原因</h4>
+  <div class="chips" style="flex-wrap:wrap;overflow:visible">${d.reasons.map(r=>`<button class="chip ${reason===r?'on':''}" data-re="${esc(r)}">${esc(r)}</button>`).join('')}<input type="text" id="nr" placeholder="＋ 新原因，回车" style="width:130px;padding:5px 12px;border-radius:999px;font-size:13px"></div>
+  <h4>来源（可选）</h4>
+  <div class="chips">${d.sources.map(r=>`<button class="chip ${srcSel===r?'on':''}" data-so="${esc(r)}">${esc(r)}</button>`).join('')}</div>
+  <h4>日期</h4><input type="date" id="dt" value="${date}">
+  <div style="height:16px"></div><button class="btn" id="save">${editing?'保存修改':'保存错题'}</button>${editing?'<div style="height:8px"></div><button class="btn ghost" id="cancel">取消修改</button>':''}${recentHtml(d)}`;
+}
+function nodes(){
+  const d=D(),rows=[],walk=(p,lv)=>kids(d,p).forEach(n=>{rows.push([n,lv]);walk(n.id,lv+1)});walk(null,0);
+  $('#app').innerHTML=`<div class="hint">长按知识点：修改 / 标记掌握 / 归档</div>
+  <div class="card">${rows.map(([n,lv])=>`<div class="row ${n.archived||n.mastered?'fade':''}" data-lp="${n.id}" style="padding-left:${lv*18}px"><span>${esc(n.name)}</span>${n.mastered?'<span class="tag">已掌握</span>':''}${n.archived?'<span class="tag">已归档</span>':''}</div>`).join('')||'<div class="hint">空</div>'}</div>
+  <h4>添加知识点</h4>
+  <input type="text" id="nn" placeholder="名称"><div style="height:8px"></div>
+  <select class="f" id="np"><option value="">放在最上层</option>${d.nodes.map(n=>`<option value="${n.id}">${esc(path(d,n.id))}</option>`).join('')}</select>
+  <div style="height:10px"></div><button class="btn" id="addn">添加</button>`;
+}
+function render(){head();({stats,add,nodes})[view]()}
+
+function nodeSheet(id){
+  const d=D(),n=d.nodes.find(x=>x.id===id);
+  sheet(`<input type="text" id="rn" value="${esc(n.name)}">
+  <button class="btn" data-a="rename" data-id="${id}">保存名称</button>
+  <button class="btn ghost" data-a="master" data-id="${id}">${n.mastered?'取消已掌握':'标记已掌握'}</button>
+  <button class="btn ghost" data-a="arch" data-id="${id}">${n.archived?'恢复':'归档'}</button>${n.archived?`<button class="btn ghost" data-act="deln" data-id="${id}">彻底删除</button>`:''}`);
+}
+document.addEventListener('click',e=>{
+  const g=s=>e.target.closest(s);let t;
+  if(g('#undo')){if(undoFn){undoFn();undoFn=null}$('#toast').classList.remove('show');return}
+  if(g('#sheet>div')){
+    if((t=g('[data-a]'))){const n=D().nodes.find(x=>x.id===t.dataset.id),a=t.dataset.a;
+      if(a==='rename'){const v=$('#rn').value.trim();if(v)n.name=v}
+      if(a==='master'){n.mastered=!n.mastered;n.mDate=today()}
+      if(a==='arch')n.archived=!n.archived;
+      save();closeSheet();render();
+    }
+    if((t=g('[data-new]'))){const v=$('#dn').value.trim();if(v){S.doms.push({id:uid(),name:v,nodes:[],reasons:['计算失误','概念不清','审题不仔细','思路卡住'],sources:['日常','专项','模考'],records:[]});S.cur=S.doms.length-1;drill=null;sel=[];save();closeSheet();render()}}
+    if((t=g('[data-sm]'))){S.showM=!S.showM;save();settings();render()}
+    if((t=g('[data-act]')))act(t);
+    return;
+  }
+  if(g('#sheet')){closeSheet();render();return}
+  if(g('#gear')){settings();return}
+  if((t=g('nav button'))){view=t.dataset.v;render();return}
+  if(lpFired){lpFired=false;return}
+  if((t=g('[data-r]'))){range=t.dataset.r;render()}
+  else if((t=g('[data-s]'))){srcF=t.dataset.s;render()}
+  else if((t=g('#crumb'))){if(drill){drill=t.dataset.up||null;render()}}
+  else if((t=g('[data-d]'))){if(t.dataset.d){drill=t.dataset.d;render()}}
+  else if((t=g('[data-x]'))){sel=sel.filter(i=>i!==t.dataset.x);add_()}
+  else if((t=g('[data-p]'))){sel.push(t.dataset.p);q='';add_()}
+  else if((t=g('[data-re]'))){reason=reason===t.dataset.re?null:t.dataset.re;add_()}
+  else if((t=g('[data-so]'))){srcSel=srcSel===t.dataset.so?null:t.dataset.so;add_()}
+  else if(g('#save')){
+    if(!sel.length)return toast('先选至少一个知识点');
+    const d=D();let re=[];
+    sel.forEach(i=>{const n=d.nodes.find(x=>x.id===i);if(n.archived){n.archived=false;re.push('已恢复 '+n.name)}if(n.mastered){n.mastered=false;re.push(n.name+' 已取消掌握')}});
+    const nid=uid();if(editing){const r=d.records.find(x=>x.id===editing);if(r){r.date=$('#dt').value||today();r.nodes=[...sel];r.reason=reason;r.source=srcSel}}else d.records.push({id:nid,date:$('#dt').value||today(),nodes:[...sel],reason,source:srcSel});
+    const was=editing;editing=null;sel=[];reason=null;srcSel=null;q='';save();render();toast(was?'已修改':(re.length?re.join('，'):'已保存'),was?null:()=>{d.records=d.records.filter(x=>x.id!==nid);save();render()});
+  }
+  else if(g('#cancel')){editing=null;sel=[];reason=null;srcSel=null;q='';render()}
+  else if(g('#addn')){const v=$('#nn').value.trim();if(!v)return;D().nodes.push({id:uid(),name:v,parent:$('#np').value||null});save();render()}
+  const dom=g('#dom');
+});
+function add_(){date=($('#dt')||{}).value||date;add();const i=$('#q');if(q){i.focus();i.setSelectionRange(q.length,q.length)}}
+document.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value;add_()}});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.id==='nr'){const v=e.target.value.trim();if(v&&!D().reasons.includes(v)){D().reasons.push(v);save();reason=v;add_()}}});
+$('#dom').addEventListener('change',e=>{
+  if(e.target.value==='new'){head();sheet('<input type="text" id="dn" placeholder="领域名称，如：英语语法"><button class="btn" data-new>创建</button>');return}
+  S.cur=+e.target.value;drill=null;sel=[];editing=null;save();render();
+});
+let lpT,lpFired=false;
+document.addEventListener('pointerdown',e=>{const r=e.target.closest('[data-lp],[data-lr]');if(!r)return;lpT=setTimeout(()=>{lpFired=true;navigator.vibrate&&navigator.vibrate(10);r.dataset.lp?nodeSheet(r.dataset.lp):recSheet(r.dataset.lr)},480)});
+['pointerup','pointercancel','pointermove','scroll'].forEach(ev=>document.addEventListener(ev,()=>clearTimeout(lpT),true));
+document.addEventListener('contextmenu',e=>{if(e.target.closest('[data-lp],[data-lr]'))e.preventDefault()});
+let editing=null;
+function recentHtml(d){
+  const L=d.records.map((r,i)=>[r,i]).sort((a,b)=>b[0].date.localeCompare(a[0].date)||b[1]-a[1]).slice(0,10).map(x=>x[0]);
+  if(!L.length)return '';
+  return '<h4>最近录入（长按修改 / 删除）</h4><div class="card">'+L.map(r=>{
+    const nm=r.nodes.map(i=>(d.nodes.find(n=>n.id===i)||{}).name).filter(Boolean).join('、');
+    return `<div class="row" data-lr="${r.id}" style="flex-direction:column;align-items:flex-start;gap:2px"><span>${esc(nm)}</span><span style="font-size:13px;color:var(--mute)">${esc([r.date.slice(5),r.reason,r.source].filter(Boolean).join(' · '))}</span></div>`}).join('')+'</div>';
+}
+function recSheet(id){sheet(`<button class="btn" data-act="editr" data-id="${id}">修改</button><button class="btn ghost" data-act="delr" data-id="${id}">删除</button>`)}
+const emptyDom=n=>({id:uid(),name:n,nodes:[],reasons:['计算失误','概念不清','审题不仔细','思路卡住'],sources:['日常','专项','模考'],records:[]});
+function settings(){
+  let l='上次导出：从未';
+  if(S.lastExport){const k=Math.floor((Date.now()-new Date(S.lastExport))/864e5);l='上次导出：'+(k<=0?'今天':k+' 天前')}
+  sheet(`<div class="sw"><span>雷达图显示已掌握的知识点</span><button class="chip ${S.showM?'on':''}" data-sm>${S.showM?'开':'关'}</button></div>
+  <input type="text" id="dnm" value="${esc(D().name)}"><button class="btn ghost" data-act="dname">保存领域名称</button>
+  <button class="btn ghost" data-act="exp">导出备份（JSON）</button>
+  <button class="btn ghost" data-act="imp">导入</button>
+  <button class="btn ghost" data-act="deld">删除当前领域</button>
+  <div class="hint">${l}</div>`);
+}
+function dl(n,t){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([t],{type:'application/json'}));a.download=n;document.body.appendChild(a);a.click();a.remove()}
+let armed=false;
+function act(t){
+  const a=t.dataset.act,d=D(),two=m=>{if(t.dataset.c!=='1'){t.dataset.c='1';t.textContent=m;return false}return true};
+  if(a==='exp'){dl('错题备份-'+today()+'.json',JSON.stringify(S));S.lastExport=today();save();settings();toast('已导出')}
+  else if(a==='imp'){armed=false;sheet('<div class="hint" style="text-align:left;padding:0">支持缩进大纲 / Markdown、路径 CSV（数学/函数/二次函数）、JSON。知识点会导入当前领域；完整备份 JSON 会恢复全部数据。</div><textarea id="it" rows="7" placeholder="粘贴内容，或选择文件" style="width:100%;font:inherit;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--card);color:var(--ink);-webkit-user-select:text;user-select:text"></textarea><input type="file" id="fi" accept=".json,.csv,.txt,.md"><button class="btn" data-act="doimp">导入</button>')}
+  else if(a==='doimp')doImport($('#it').value,t);
+  else if(a==='editr'){const r=d.records.find(x=>x.id===t.dataset.id);if(!r)return;editing=r.id;sel=r.nodes.filter(i=>d.nodes.some(n=>n.id===i));reason=r.reason;srcSel=r.source;date=r.date;q='';view='add';closeSheet();render();$('#app').scrollTop=0}
+  else if(a==='delr'){if(!two('再点一次确认删除'))return;d.records=d.records.filter(x=>x.id!==t.dataset.id);if(editing===t.dataset.id)editing=null;save();closeSheet();render();toast('已删除')}
+  else if(a==='dname'){const v=$('#dnm').value.trim();if(v){d.name=v;save();head();toast('已保存')}}
+  else if(a==='deld'){if(!two('再点一次确认：删除该领域及全部错题'))return;S.doms.splice(S.cur,1);if(!S.doms.length)S.doms.push(emptyDom('我的领域'));S.cur=0;drill=null;sel=[];save();closeSheet();render()}
+  else if(a==='deln'){if(!two('再点一次：连同相关错题记录一起删除'))return;const ids=sub(d,t.dataset.id);d.nodes=d.nodes.filter(n=>!ids.has(n.id));d.records.forEach(r=>r.nodes=r.nodes.filter(x=>!ids.has(x)));d.records=d.records.filter(r=>r.nodes.length);sel=sel.filter(x=>!ids.has(x));if(ids.has(drill))drill=null;save();closeSheet();render()}
+}
+function pathsFromText(txt){
+  const L=txt.split(/\r?\n/).filter(l=>l.trim()),out=[];
+  if(L.every(l=>!/^[\s\-*#]/.test(l))&&L.some(l=>/[\/,，>]/.test(l))){
+    if(/^(路径|path|知识点|name)\b/i.test(L[0]))L.shift();
+    L.forEach(l=>{const p=l.split(/[\/,，>]/).map(x=>x.replace(/^["'\s]+|["'\s]+$/g,'')).filter(Boolean);if(p.length)out.push(p)});
+    return out;
+  }
+  const st=[];let H=0;
+  L.forEach(l=>{
+    const m=l.match(/^(\s*)(#*)\s*([-*+]\s+|\d+[.、)]\s*)?(.*)$/),nm=m[4].trim().replace(/[*_`]/g,'');if(!nm)return;
+    let ind;if(m[2]){H=m[2].length;ind=H*1000}else ind=H*1000+(H?1:0)+m[1].replace(/\t/g,'    ').length;
+    while(st.length&&st[st.length-1].i>=ind)st.pop();
+    const p=[...(st.length?st[st.length-1].p:[]),nm];st.push({i:ind,p});out.push(p);
+  });
+  return out;
+}
+function pathsFromJson(j){
+  const out=[],w=(x,pre)=>{
+    if(typeof x==='string'){const p=x.split(/[\/>]/).map(v=>v.trim()).filter(Boolean);if(p.length)out.push([...pre,...p])}
+    else if(Array.isArray(x))x.forEach(y=>w(y,pre));
+    else if(x&&x.name){const p=[...pre,String(x.name)];out.push(p);(x.children||[]).forEach(c=>w(c,p))}
+  };w(j,[]);return out;
+}
+function doImport(txt,btn){
+  txt=(txt||'').replace(/^\uFEFF/,'').trim();if(!txt)return toast('内容为空');
+  let paths;
+  if(/^[\[{]/.test(txt)){
+    let j;try{j=JSON.parse(txt)}catch(e){return toast('JSON 格式有误')}
+    if(j&&Array.isArray(j.doms)){
+      if(!armed){armed=true;btn.textContent='将覆盖现有全部数据，再点一次确认';return}
+      S=j;S.cur=0;drill=null;sel=[];save();closeSheet();render();return toast('已恢复备份');
+    }
+    paths=pathsFromJson(j);
+  }else paths=pathsFromText(txt);
+  if(!paths.length)return toast('没有识别到知识点');
+  const d=D();let c=0;
+  paths.forEach(p=>{let par=null;p.forEach(nm=>{let n=d.nodes.find(x=>x.parent===par&&x.name===nm);if(!n){n={id:uid(),name:nm,parent:par};d.nodes.push(n);c++}par=n.id})});
+  save();closeSheet();render();toast('新增 '+c+' 个知识点');
+}
+document.addEventListener('change',e=>{if(e.target.id==='fi'&&e.target.files[0]){const r=new FileReader();r.onload=()=>{$('#it').value=r.result};r.readAsText(e.target.files[0])}});
+try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
+if('serviceWorker' in navigator&&/^https?:/.test(location.protocol))navigator.serviceWorker.register('sw.js').catch(()=>{});
+render();
+</script>
+</body>
+</html>
